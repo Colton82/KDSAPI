@@ -1,0 +1,62 @@
+﻿using KDSAPI.Data;
+using KDSAPI.Services;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
+using Org.BouncyCastle.Bcpg;
+
+namespace KDSAPI.Controllers
+{
+    [Route("api/[controller]")]
+    public class UsersController : Controller
+    {
+        private readonly SecurityService _securityService;
+        private readonly UsersDAO _usersDAO;
+
+        public UsersController(SecurityService securityService, UsersDAO usersDAO)
+        {
+            _securityService = securityService;
+            _usersDAO = usersDAO;
+        }
+
+        [HttpPost("login")]
+        public IActionResult Login([FromBody] LoginRequest loginRequest)
+        {
+            if (loginRequest == null || string.IsNullOrWhiteSpace(loginRequest.Username) || string.IsNullOrWhiteSpace(loginRequest.Password))
+            {
+                return BadRequest("Username and password are required.");
+            }
+
+            var user = _usersDAO.GetByUsername(loginRequest.Username);
+            if (user == null || !_securityService.ValidatePassword(loginRequest.Password, user.Password))
+            {
+                return Unauthorized("Invalid username or password.");
+            }
+
+            return Ok(new { userID = user.Id });
+        }
+
+        [HttpPost("register")]
+        public IActionResult actionResult([FromBody] LoginRequest loginRequest)
+        {
+            if (loginRequest == null || string.IsNullOrWhiteSpace(loginRequest.Username) || string.IsNullOrWhiteSpace(loginRequest.Password))
+            {
+                return BadRequest("Username and password are required.");
+            }
+            var existingUser = _usersDAO.GetByUsername(loginRequest.Username);
+            if (existingUser != null)
+            {
+                return BadRequest("Username already exists.");
+            }
+            var hashedPassword = _securityService.HashPassword(loginRequest.Password);
+            _usersDAO.Create(loginRequest.Username, hashedPassword);
+            return Ok("User created.");
+        }
+
+        public class LoginRequest
+        {
+            public string Username { get; set; }
+            public string Password { get; set; }
+        }
+    }
+}
