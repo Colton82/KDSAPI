@@ -3,6 +3,9 @@ using MySql.Data.MySqlClient;
 
 namespace KDSAPI.Data
 {
+    /// <summary>
+    /// Data access object for layout data.
+    /// </summary>
     public class LayoutDAO
     {
         private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
@@ -28,6 +31,7 @@ namespace KDSAPI.Data
                 if (result == null)
                 {
                     System.Diagnostics.Debug.WriteLine($"No layout data found for UserId: {id}");
+                    return null;
                 }
                 else
                 {

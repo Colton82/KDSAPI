@@ -4,11 +4,17 @@ using Newtonsoft.Json;
 
 namespace KDSAPI.Data
 {
+    /// <summary>
+    /// Data Access Object for orders.
+    /// </summary>
     public class OrderDAO
     {
         private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
 
-
+        /// <summary>
+        /// Saves the order to the database.
+        /// </summary>
+        /// <param name="jsonOrder"></param>
         public void SaveOrder(string jsonOrder)
         {
             var order = JsonConvert.DeserializeObject<OrderModel>(jsonOrder);

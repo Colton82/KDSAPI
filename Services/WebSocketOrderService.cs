@@ -1,73 +1,90 @@
-﻿using KDSAPI.Data;
-using MySqlX.XDevAPI;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
 using System.Text;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using KDSAPI.Data;
 
-namespace KDSAPI.Services
+/// <summary>
+/// Websocket service for handling order messages.
+/// </summary>
+public class WebSocketOrderService
 {
-    public class WebSocketOrderService
-    {
-        private static readonly List<WebSocket> clients = new();
-        private readonly OrderDAO orderDAO = new();
+    private static readonly List<WebSocket> _clients = new();
+    private readonly OrderDAO _orderDAO = new();
 
-        public async Task HandleWebSocketAsync(HttpContext context)
+    /// <summary>
+    /// Handles the WebSocket connection for the KDS UI.
+    /// </summary>
+    /// <param name="context"></param>
+    /// <returns></returns>
+    public async Task HandleWebSocketAsync(HttpContext context)
+    {
+        if (!context.WebSockets.IsWebSocketRequest)
         {
-            if (!context.WebSockets.IsWebSocketRequest)
+            context.Response.StatusCode = 400;
+            return;
+        }
+
+        WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
+        _clients.Add(webSocket);
+        Console.WriteLine("New KDS UI WebSocket client connected.");
+
+        await Receive(webSocket);
+    }
+
+    /// <summary>
+    /// Receives the order message from the POS system, broadcasts order to UI, and saves to DB.
+    /// </summary>
+    /// <param name="webSocket"></param>
+    /// <returns></returns>
+    private async Task Receive(WebSocket webSocket)
+    {
+        var buffer = new byte[1024 * 4];
+
+        while (webSocket.State == WebSocketState.Open)
+        {
+            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            if (result.MessageType == WebSocketMessageType.Close)
             {
-                context.Response.StatusCode = 400;
+                Console.WriteLine("WebSocket connection closed.");
+                await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                _clients.Remove(webSocket);
                 return;
             }
 
-            WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync();
-            System.Diagnostics.Debug.WriteLine("Still listening");
-            clients.Add(webSocket);
-            Console.WriteLine("Client connected.");
-            await Recieve(webSocket);
+            string json = Encoding.UTF8.GetString(buffer, 0, result.Count);
+            Console.WriteLine($"Received order: {json}");
+
+            // **Broadcast to all connected clients (KDS UIs)**
+            await BroadcastAsync(json);
+
+            // **Save order to database asynchronously**
+            _ = Task.Run(() => _orderDAO.SaveOrder(json));
         }
+    }
 
-        private async Task Recieve(WebSocket webSocket)
+    /// <summary>
+    /// Broadcasts the order message to the KDS UI.
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    private async Task BroadcastAsync(string message)
+    {
+        byte[] data = Encoding.UTF8.GetBytes(message);
+        var tasks = new List<Task>();
+
+        foreach (var socket in _clients)
         {
-            var buffer = new byte[1024 * 4];
-            while(webSocket.State == WebSocketState.Open)
+            if (socket.State == WebSocketState.Open)
             {
-                var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                if(result.MessageType == WebSocketMessageType.Close)
-                {
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                    clients.Remove(webSocket);
-                    Console.WriteLine("WebSocket connection closed.");
-                }
-                else if (result.MessageType == WebSocketMessageType.Text)
-                {
-                    string json = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    Console.WriteLine($"Received order: {json}");
-
-                    // Broadcast order to all connected KDS UIs
-                    await BroadcastAsync(json);
-
-                    // Asynchronously save to the database
-                    _ = Task.Run(() => orderDAO.SaveOrder(json));
-                }
+                tasks.Add(socket.SendAsync(new ArraySegment<byte>(data),
+                                            WebSocketMessageType.Text,
+                                            true,
+                                            CancellationToken.None));
             }
         }
-        private async Task BroadcastAsync(string message)
-        {
-            byte[] data = Encoding.UTF8.GetBytes(message);
-            var tasks = new List<Task>();
 
-            foreach (var socket in clients)
-            {
-                if (socket.State == WebSocketState.Open)
-                {
-                    tasks.Add(socket.SendAsync(new ArraySegment<byte>(data),
-                                                WebSocketMessageType.Text,
-                                                true,
-                                                CancellationToken.None));
-                }
-            }
-
-            await Task.WhenAll(tasks);
-        }
-
+        await Task.WhenAll(tasks);
+        Console.WriteLine("Order broadcasted to KDS UI.");
     }
 }

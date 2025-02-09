@@ -4,12 +4,19 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace KDSAPI.Controllers
 {
+    /// <summary>
+    /// Controller for handling layout data.
+    /// </summary>
     [Route("api/[controller]")]
     public class LayoutController : Controller
     {
         LayoutDAO _layoutDAO = new LayoutDAO();
 
-
+        /// <summary>
+        /// Retrieves the layout data for the specified user.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         public ActionResult GetLayoutByUserId(int id)
         {
@@ -18,6 +25,12 @@ namespace KDSAPI.Controllers
             return Ok(stations);
         }
 
+        /// <summary>
+        /// Saves the layout data for the specified user.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="layout"></param>
+        /// <returns></returns>
         [HttpPost("save/{id}")]
         public IActionResult SaveLayout(int id, [FromBody] List<string> layout)
         {

@@ -4,11 +4,18 @@ using System.Data.SqlClient;
 
 namespace KDSAPI.Data
 {
-    public class UsersDAO
+    /// <summary>
+    /// Data access object for user data.
+    /// </summary>
+    public class UsersDAO : IUsersDAO
     {
         private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
 
-
+        /// <summary>
+        /// Retrieves a user by ID.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public UserModel GetByID(int id)
         {
             UserModel user = null;
@@ -33,6 +40,11 @@ namespace KDSAPI.Data
             return user;
         }
 
+        /// <summary>
+        /// Retrieves a user by username.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <returns></returns>
         public UserModel GetByUsername(string username)
         {
             UserModel user = null;
@@ -57,7 +69,13 @@ namespace KDSAPI.Data
             return user;
         }
 
-        internal IActionResult Create(string username, string hashedPassword)
+        /// <summary>
+        /// Creates a new user.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="hashedPassword"></param>
+        /// <returns></returns>
+        public IActionResult Create(string username, string hashedPassword)
         {
             using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
@@ -79,7 +97,9 @@ namespace KDSAPI.Data
     }
 
 
-
+    /// <summary>
+    /// Model for user data.
+    /// </summary>
     public class UserModel
     {
         public int Id { get; set; }

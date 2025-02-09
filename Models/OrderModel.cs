@@ -1,5 +1,8 @@
 ﻿namespace KDSAPI.Models
 {
+    /// <summary>
+    /// Model for an order.
+    /// </summary>
     public class OrderModel
     {
         public int Id { get; set; }

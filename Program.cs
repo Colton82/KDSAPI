@@ -9,6 +9,8 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IUsersDAO, UsersDAO>();
+builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<SecurityService>();
 builder.Services.AddScoped<UsersDAO>();
 builder.Logging.AddConsole();

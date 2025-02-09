@@ -7,18 +7,26 @@ using Org.BouncyCastle.Bcpg;
 
 namespace KDSAPI.Controllers
 {
+    /// <summary>
+    /// Controller for handling user data
+    /// </summary>
     [Route("api/[controller]")]
     public class UsersController : Controller
     {
-        private readonly SecurityService _securityService;
-        private readonly UsersDAO _usersDAO;
+        private readonly ISecurityService _securityService;
+        private readonly IUsersDAO _usersDAO;
 
-        public UsersController(SecurityService securityService, UsersDAO usersDAO)
+        public UsersController(ISecurityService securityService, IUsersDAO usersDAO)
         {
             _securityService = securityService;
             _usersDAO = usersDAO;
         }
 
+        /// <summary>
+        /// Logs in a user with the specified credentials.
+        /// </summary>
+        /// <param name="loginRequest"></param>
+        /// <returns>OKResult{ userID }</returns>
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest loginRequest)
         {
@@ -28,6 +36,7 @@ namespace KDSAPI.Controllers
             }
 
             var user = _usersDAO.GetByUsername(loginRequest.Username);
+
             if (user == null || !_securityService.ValidatePassword(loginRequest.Password, user.Password))
             {
                 return Unauthorized("Invalid username or password.");
@@ -36,6 +45,11 @@ namespace KDSAPI.Controllers
             return Ok(new { userID = user.Id });
         }
 
+        /// <summary>
+        /// Registers a new user with the specified credentials.
+        /// </summary>
+        /// <param name="loginRequest"></param>
+        /// <returns>OKResult</returns>
         [HttpPost("register")]
         public IActionResult actionResult([FromBody] LoginRequest loginRequest)
         {
@@ -53,6 +67,9 @@ namespace KDSAPI.Controllers
             return Ok("User created.");
         }
 
+        /// <summary>
+        /// Request object for login requests.
+        /// </summary>
         public class LoginRequest
         {
             public string Username { get; set; }
