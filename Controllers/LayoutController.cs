@@ -1,4 +1,5 @@
 ﻿using KDSAPI.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace KDSAPI.Controllers
     /// Controller for handling layout data.
     /// </summary>
     [Route("api/[controller]")]
+    [Authorize]
     public class LayoutController : Controller
     {
         LayoutDAO _layoutDAO = new LayoutDAO();

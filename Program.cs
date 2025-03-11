@@ -1,12 +1,16 @@
 using KDSAPI.Data;
 using KDSAPI.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Load configuration
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 
+// Add services to the container.
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUsersDAO, UsersDAO>();
@@ -15,6 +19,28 @@ builder.Services.AddScoped<SecurityService>();
 builder.Services.AddScoped<UsersDAO>();
 builder.Logging.AddConsole();
 builder.WebHost.UseUrls("https://localhost:7121/");
+
+// ? Move Authentication Setup ABOVE `builder.Build()`
+var key = Encoding.UTF8.GetBytes(jwtSettings["Secret"]);
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSettings["Audience"],
+            ValidateLifetime = true
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// ? Now Build the App AFTER Registering Services
 var app = builder.Build();
 
 app.UseWebSockets();
@@ -25,7 +51,6 @@ app.Map("/wss/orders", async context =>
 {
     Console.WriteLine("Received WebSocket request...");
     await orderHandler.HandleWebSocketAsync(context);
-    Console.WriteLine("WebSocket handler executed.");
     Console.WriteLine("WebSocket handler executed.");
 });
 
@@ -38,8 +63,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
