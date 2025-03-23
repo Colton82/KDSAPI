@@ -44,14 +44,22 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 app.UseWebSockets();
-Console.WriteLine("WebSocket server running on wss://localhost:7121/ws/orders");
+Console.WriteLine("WebSocket server running on wss://localhost:7121");
+
 var orderHandler = new WebSocketOrderService();
 
+// WebSocket endpoint for KDS UI clients
 app.Map("/wss/orders", async context =>
 {
-    Console.WriteLine("Received WebSocket request...");
+    Console.WriteLine("Received WebSocket request on /wss/orders");
     await orderHandler.HandleWebSocketAsync(context);
-    Console.WriteLine("WebSocket handler executed.");
+});
+
+// WebSocket endpoint for POS simulator
+app.Map("/wss/pos", async context =>
+{
+    Console.WriteLine("Received WebSocket request on /wss/pos");
+    await orderHandler.HandleWebSocketAsync(context);
 });
 
 // Configure the HTTP request pipeline.

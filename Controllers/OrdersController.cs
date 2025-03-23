@@ -4,51 +4,41 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
-using System.Text.Json;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace KDSAPI.Controllers
 {
     [Route("api/[controller]")]
-    //[Authorize]
+    [Authorize]
     [ApiController]
     public class OrdersController : ControllerBase
     {
         private readonly OrderDAO _orderDAO = new OrderDAO();
 
+        /// <summary>
+        /// Retrieves all orders for a given username.
+        /// </summary>
         [HttpGet("{username}")]
-        public IActionResult GetOrdersByUsername(string username)
+        public async Task<IActionResult> GetOrdersByUsername(string username)
         {
             try
             {
-                OrderModel[] orders = _orderDAO.GetOrdersByUserName(username);
-                foreach (var order in orders)
-                {
-                    Console.WriteLine($"Retrieved ItemsJson from DB: {order.ItemsJson}");
-                }
+                List<DynamicOrderModel> orders = await _orderDAO.GetOrdersByUserName(username);
 
                 var processedOrders = orders.Select(o => new
                 {
                     o.Id,
                     o.CustomerName,
                     o.Timestamp,
-                    o.Users_id,
                     o.Station,
-
-                    Items = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, string>>>(o.ItemsJson)
+                    Items = o.Items // Already deserialized into List<OrderItem>
                 }).ToList();
 
-                foreach (var order in processedOrders)
-                {
-                    Console.WriteLine($"Order ID: {order.Id}, Items: {JsonConvert.SerializeObject(order.Items, Formatting.Indented)}");
-                }
-
-                string jsonResponse = JsonConvert.SerializeObject(processedOrders, Formatting.Indented);
-                Console.WriteLine($"Final API JSON Response:\n{jsonResponse}");
+                Console.WriteLine($"Returning {processedOrders.Count} orders for user {username}");
 
                 return Ok(processedOrders);
-
-
-
             }
             catch (Exception ex)
             {
@@ -57,8 +47,11 @@ namespace KDSAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Updates an existing order.
+        /// </summary>
         [HttpPut]
-        public async Task<IActionResult> UpdateOrder([FromBody] OrderModel updatedOrder)
+        public async Task<IActionResult> UpdateOrder([FromBody] DynamicOrderModel updatedOrder)
         {
             if (updatedOrder == null)
             {
@@ -66,14 +59,10 @@ namespace KDSAPI.Controllers
             }
 
             Console.WriteLine($"Received Order Update for ID {updatedOrder.Id}");
-            Console.WriteLine($"CustomerName: {updatedOrder.CustomerName}");
-            Console.WriteLine($"Station: {updatedOrder.Station}");
-            Console.WriteLine($"TimeStamp: {updatedOrder.Timestamp}");
-            Console.WriteLine($"ItemsJson: {updatedOrder.ItemsJson}");
 
             try
             {
-                var existingOrder = _orderDAO.GetOrderById(updatedOrder.Id);
+                DynamicOrderModel existingOrder = await _orderDAO.GetOrderById(updatedOrder.Id);
                 if (existingOrder == null)
                 {
                     return NotFound($"Order with ID {updatedOrder.Id} not found.");
@@ -82,7 +71,7 @@ namespace KDSAPI.Controllers
                 existingOrder.CustomerName = updatedOrder.CustomerName;
                 existingOrder.Station = updatedOrder.Station;
                 existingOrder.Timestamp = updatedOrder.Timestamp;
-                existingOrder.ItemsJson = updatedOrder.ItemsJson;
+                existingOrder.Items = updatedOrder.Items; // Directly update Items list
 
                 bool success = await _orderDAO.UpdateOrderAsync(existingOrder);
                 if (!success)
@@ -99,6 +88,37 @@ namespace KDSAPI.Controllers
             }
         }
 
+        /// <summary>
+        /// Archives a completed order.
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> ArchiveOrder([FromBody] DynamicOrderModel newOrder)
+        {
+            if (newOrder == null)
+            {
+                return BadRequest("Invalid order data.");
+            }
 
+            Console.WriteLine($"Archiving Completed Order: {newOrder.CustomerName}");
+
+            try
+            {
+                bool success = await _orderDAO.ArchiveOrderAsync(newOrder);
+                if (!success)
+                {
+                    return StatusCode(500, "Failed to archive order.");
+                }
+
+                // Delete the order after archiving
+                await _orderDAO.DeleteOrderAsync(newOrder.Id);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error archiving order: {ex.Message}");
+                return StatusCode(500, "An error occurred while archiving the order.");
+            }
+        }
     }
 }

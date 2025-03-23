@@ -10,6 +10,8 @@ namespace KDSAPI.Data
     {
         private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
 
+        public UsersDAO usersDAO = new UsersDAO();
+
         /// <summary>
         /// Retrieves layout string, splits it into an array of strings and returns
         /// </summary>
@@ -50,8 +52,10 @@ namespace KDSAPI.Data
         /// <param name="id">The user ID.</param>
         /// <param name="layout">The layout data as a string.</param>
         /// <returns>True if the operation was successful; otherwise, false.</returns>
-        public bool SaveLayout(int id, string layout)
+        public bool SaveLayout(string username, string layout)
         {
+            int id = usersDAO.GetIdByUseraname(username);
+
             try
             {
                 using (MySqlConnection connection = new MySqlConnection(connectionString))
@@ -59,11 +63,11 @@ namespace KDSAPI.Data
                     connection.Open();
 
                     // Try to update existing layout
-                    string updateQuery = "UPDATE Layouts SET LayoutData = @layout WHERE UserId = @id";
+                    string updateQuery = "UPDATE Layouts SET LayoutData = @layout WHERE UserId = @Id";
                     using (MySqlCommand updateCommand = new MySqlCommand(updateQuery, connection))
                     {
                         updateCommand.Parameters.AddWithValue("@layout", layout);
-                        updateCommand.Parameters.AddWithValue("@id", id);
+                        updateCommand.Parameters.AddWithValue("@Id", id);
                         int rowsAffected = updateCommand.ExecuteNonQuery();
                         if (rowsAffected > 0)
                         {
@@ -72,10 +76,10 @@ namespace KDSAPI.Data
                     }
 
                     // If none exists, create new layout record
-                    string insertQuery = "INSERT INTO Layouts (UserId, LayoutData) VALUES (@id, @layout)";
+                    string insertQuery = "INSERT INTO Layouts (UserId, LayoutData) VALUES (@Id, @layout)";
                     using (MySqlCommand insertCommand = new MySqlCommand(insertQuery, connection))
                     {
-                        insertCommand.Parameters.AddWithValue("@id", id);
+                        insertCommand.Parameters.AddWithValue("@Id", id);
                         insertCommand.Parameters.AddWithValue("@layout", layout);
                         int rowsAffected = insertCommand.ExecuteNonQuery();
 

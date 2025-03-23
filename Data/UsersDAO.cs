@@ -41,33 +41,53 @@ namespace KDSAPI.Data
         }
 
         /// <summary>
-        /// Retrieves a user by username.
+        /// Retrieves a user by username, handling database connection failures.
         /// </summary>
-        /// <param name="username"></param>
-        /// <returns></returns>
+        /// <param name="username">The username of the user to retrieve.</param>
+        /// <returns>A UserModel if found; otherwise, null.</returns>
         public UserModel GetByUsername(string username)
         {
             UserModel user = null;
+
             using (MySqlConnection connection = new MySqlConnection(connectionString))
             {
                 string query = "SELECT Id, Username, Password FROM Users WHERE Username = @Username";
-                MySqlCommand command = new MySqlCommand(query, connection);
-                command.Parameters.AddWithValue("@Username", username);
-
-                connection.Open();
-                MySqlDataReader reader = command.ExecuteReader();
-                if (reader.Read())
+                using (MySqlCommand command = new MySqlCommand(query, connection))
                 {
-                    user = new UserModel
+                    command.Parameters.AddWithValue("@Username", username);
+
+                    try
                     {
-                        Id = (int)reader["Id"],
-                        Username = (string)reader["Username"],
-                        Password = (string)reader["Password"]
-                    };
+                        connection.Open();
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                user = new UserModel
+                                {
+                                    Id = reader.GetInt32("Id"),
+                                    Username = reader.GetString("Username"),
+                                    Password = reader.GetString("Password")
+                                };
+                            }
+                        }
+                    }
+                    catch (MySqlException ex)
+                    {
+                        Console.WriteLine($"Database connection error: {ex.Message}");
+                        return null;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error retrieving user: {ex.Message}");
+                        return null;
+                    }
                 }
             }
+
             return user;
         }
+
 
         /// <summary>
         /// Creates a new user.
@@ -92,6 +112,34 @@ namespace KDSAPI.Data
                 {
                     return new BadRequestResult();
                 }
+            }
+        }
+
+        internal int GetIdByUseraname(string username)
+        {
+            try
+            {
+                using var connection = new MySqlConnection(connectionString);
+                {
+                    connection.Open();
+                    string query = "SELECT Id FROM Users WHERE Username = @Username";
+                    MySqlCommand command = new MySqlCommand(query, connection);
+                    command.Parameters.AddWithValue("@Username", username);
+                    var result = command.ExecuteScalar();
+                    if (result == null)
+                    {
+                        return -1;
+                    }
+                    else
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error retrieving user ID: {ex.Message}");
+                return -1;
             }
         }
     }

@@ -41,7 +41,12 @@ namespace KDSAPI.Controllers
 
             var user = _usersDAO.GetByUsername(loginRequest.Username);
 
-            if (user == null || !_securityService.ValidatePassword(loginRequest.Password, user.Password))
+            if (user == null)
+            {
+                return StatusCode(500, "Database connection error. Please try again later.");
+            }
+
+            if (!_securityService.ValidatePassword(loginRequest.Password, user.Password))
             {
                 return Unauthorized("Invalid username or password.");
             }
@@ -49,8 +54,9 @@ namespace KDSAPI.Controllers
             // Generate JWT Token
             var token = GenerateJwtToken(user.Id, user.Username);
 
-            return Ok(new { token });
+            return Ok(new { token, user.Id });
         }
+
 
         [HttpPost("logout")]
         [Authorize]

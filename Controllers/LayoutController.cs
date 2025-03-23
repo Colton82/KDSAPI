@@ -13,6 +13,7 @@ namespace KDSAPI.Controllers
     public class LayoutController : Controller
     {
         LayoutDAO _layoutDAO = new LayoutDAO();
+        UsersDAO _userDAO = new UsersDAO();
 
         /// <summary>
         /// Retrieves the layout data for the specified user.
@@ -20,11 +21,18 @@ namespace KDSAPI.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpGet]
-        public ActionResult GetLayoutByUserId(int id)
+        public ActionResult GetLayoutByUsername(string username)
         {
-            string[] stations = _layoutDAO.GetLayoutByUserId(id);
-
-            return Ok(stations);
+            var id = _userDAO.GetIdByUseraname(username);
+            if (id.GetType() != typeof(int))
+            {
+                return StatusCode(500, "Failed to retrieve user ID.");
+            }
+            else
+            {
+                string[] stations = _layoutDAO.GetLayoutByUserId((int)id);
+                return Ok(stations);
+            }
         }
 
         /// <summary>
@@ -33,8 +41,8 @@ namespace KDSAPI.Controllers
         /// <param name="id"></param>
         /// <param name="layout"></param>
         /// <returns></returns>
-        [HttpPost("save/{id}")]
-        public IActionResult SaveLayout(int id, [FromBody] List<string> layout)
+        [HttpPost("save/{username}")]
+        public IActionResult SaveLayout(string username, [FromBody] List<string> layout)
         {
             if (layout == null || layout.Count == 0)
             {
@@ -42,8 +50,7 @@ namespace KDSAPI.Controllers
             }
 
             string layoutString = string.Join(",", layout);
-
-            bool success = _layoutDAO.SaveLayout(id, layoutString);
+            bool success = _layoutDAO.SaveLayout(username, layoutString);
 
             if (success)
             {
