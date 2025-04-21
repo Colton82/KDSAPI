@@ -5,7 +5,7 @@ namespace KDSAPI.Models
 {
     public class DynamicOrderModel
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public string CustomerName { get; set; }
         public string Station { get; set; }
         public string Timestamp { get; set; }

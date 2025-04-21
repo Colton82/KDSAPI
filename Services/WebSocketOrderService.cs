@@ -87,7 +87,7 @@ public class WebSocketOrderService
 
             if (!expectIncoming)
             {
-                continue; // Ignore unexpected messages from UI
+                continue;
             }
 
             string json = Encoding.UTF8.GetString(buffer, 0, result.Count);

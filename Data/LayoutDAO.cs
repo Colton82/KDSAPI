@@ -8,7 +8,7 @@ namespace KDSAPI.Data
     /// </summary>
     public class LayoutDAO
     {
-        private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
+        private string connectionString = "Server=canyon-kds.mysql.database.azure.com;Port=3306;Database=kds;User Id=coltoncuellar;Password=Lolak82!";
 
         public UsersDAO usersDAO = new UsersDAO();
 

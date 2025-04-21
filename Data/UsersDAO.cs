@@ -9,7 +9,7 @@ namespace KDSAPI.Data
     /// </summary>
     public class UsersDAO : IUsersDAO
     {
-        private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
+        private string connectionString = "Server=canyon-kds.mysql.database.azure.com;Port=3306;Database=kds;User Id=coltoncuellar;Password=Lolak82!";
 
         /// <summary>
         /// Retrieves a user by ID.

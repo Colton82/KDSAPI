@@ -14,7 +14,7 @@ namespace KDSAPI.Data
     /// </summary>
     public class OrderDAO
     {
-        private string connectionString = "Server=localhost;Port=3306;Database=kds;User Id=root;Password=root";
+        private string connectionString = "Server=canyon-kds.mysql.database.azure.com;Port=3306;Database=kds;User Id=coltoncuellar;Password=Lolak82!";
 
         /// <summary>
         /// Saves the order to the database, including Items as JSON.
@@ -26,11 +26,12 @@ namespace KDSAPI.Data
                 using (var connection = new MySqlConnection(connectionString))
                 {
                     await connection.OpenAsync();
-                    string query = "INSERT INTO orders (CustomerName, Timestamp, Users_id, Station, Items) " +
-                                   "VALUES (@CustomerName, @Timestamp, @Users_id, @Station, @Items)";
+                    string query = "INSERT INTO orders (Id, CustomerName, Timestamp, Users_id, Station, Items) " +
+                                   "VALUES (@Id, @CustomerName, @Timestamp, @Users_id, @Station, @Items)";
 
                     using (var command = new MySqlCommand(query, connection))
                     {
+                        command.Parameters.AddWithValue("@Id", order.Id);
                         command.Parameters.AddWithValue("@CustomerName", order.CustomerName);
                         command.Parameters.AddWithValue("@Timestamp", order.Timestamp); // Keep as string
                         command.Parameters.AddWithValue("@Users_id", order.Users_id);
@@ -98,7 +99,8 @@ namespace KDSAPI.Data
                             {
                                 var order = new DynamicOrderModel
                                 {
-                                    Id = reader.GetInt32("Id"),
+                                    Id = reader.GetInt64("Id"),
+                                    // Please clarify your request or provide additional details so I can assist you effectively.
                                     CustomerName = reader.GetString("CustomerName"),
                                     Timestamp = reader.GetString("Timestamp"),
                                     Station = reader.IsDBNull(reader.GetOrdinal("Station")) ? null : reader.GetString("Station")
@@ -126,7 +128,7 @@ namespace KDSAPI.Data
         /// <summary>
         /// Retrieves an order based on its ID.
         /// </summary>
-        public async Task<DynamicOrderModel> GetOrderById(int id)
+        public async Task<DynamicOrderModel> GetOrderById(long id)
         {
             DynamicOrderModel order = null;
 
@@ -147,7 +149,7 @@ namespace KDSAPI.Data
                             {
                                 order = new DynamicOrderModel
                                 {
-                                    Id = reader.GetInt32("Id"),
+                                    Id = reader.GetInt64("Id"),
                                     CustomerName = reader.GetString("CustomerName"),
                                     Timestamp = reader.GetString("Timestamp"),
                                     Station = reader.IsDBNull(reader.GetOrdinal("Station")) ? null : reader.GetString("Station")
@@ -210,7 +212,7 @@ namespace KDSAPI.Data
         /// <summary>
         /// Deletes an order by its ID.
         /// </summary>
-        public async Task<bool> DeleteOrderAsync(int id)
+        public async Task<bool> DeleteOrderAsync(long id)
         {
             try
             {
@@ -299,7 +301,7 @@ namespace KDSAPI.Data
                 using var connection = new MySqlConnection(connectionString);
                 await connection.OpenAsync();
                 string query = "SELECT id FROM users WHERE username = @username";
-                int userId = -1;
+                long userId = -1;
 
                 using (var command = new MySqlCommand(query, connection))
                 {
@@ -333,7 +335,7 @@ namespace KDSAPI.Data
                 {
                     orders.Add(new DynamicOrderModel
                     {
-                        Id = orderReader.GetInt32("id"),
+                        Id = orderReader.GetInt64("id"),
                         CustomerName = orderReader.GetString("customerName"),
                         Station = orderReader.GetString("Station"),
                         Timestamp = orderReader.GetString("Timestamp"),
